@@ -1,12 +1,12 @@
 # SLURM Desktop Widget
 
-Windows 桌面小组件，显示远程 SLURM 集群上正在运行的任务，每分钟自动刷新。
+A Windows desktop widget that displays jobs on a remote SLURM cluster and refreshes every minute.
 
-Rainmeter 皮肤 + Python 后台守护进程实现。
+Implemented with a Rainmeter skin and a Python background daemon.
 
-## 效果
+## Preview
 
-桌面右上角显示半透明面板：
+A translucent panel appears in the upper-right corner of the desktop:
 
 ```
 Hanhai22  |  09:03:49
@@ -16,47 +16,55 @@ Hanhai22  |  09:03:49
 - 1031067  wait_job              0:00  PENDING   —
 ```
 
-`*` RUNNING（运行中）| `-` PENDING（排队中）
+`*` indicates RUNNING; `-` indicates PENDING.
 
-## 文件说明
+## Files
 
-| 文件 | 作用 |
-|------|------|
-| `slurm_fetch.py` | 通过 SSH 执行 `squeue`，解析输出写入 `jobs.txt` |
-| `slurm_daemon.pyw` | 后台守护进程，每 60 秒调用 fetch 脚本 |
-| `Hanhai22Jobs.ini` | Rainmeter 皮肤定义（显示格式、字体、颜色） |
+| File | Purpose |
+|------|---------|
+| `slurm_fetch.py` | Run `squeue` over SSH, parse its output, and write `jobs.txt` |
+| `slurm_daemon.pyw` | Call the fetch script every 60 seconds in the background |
+| `Hanhai22Jobs.ini` | Define the Rainmeter skin's display format, font, and colors |
 
-## 依赖
+## Dependencies
 
-- **Rainmeter** — 免费的 Windows 桌面小组件平台
-  - 官网：https://www.rainmeter.net/
-  - 或 `winget install Rainmeter.Rainmeter`
-- **Python 3.11+** — tkinter 内置，无需额外 pip 包
-- **SSH 连接** — 需要能通过 SSH 连接到 SLURM 集群（本方案使用 `hpc-run.ps1` 包装器，可替换为任何 SSH 方式）
+- **Rainmeter** — Free Windows desktop widget platform
+  - Website: https://www.rainmeter.net/
+  - Install with `winget install Rainmeter.Rainmeter`
+- **Python 3.11+** — No additional pip packages required
+- **SSH access** — A working connection to the SLURM cluster; this implementation uses a PowerShell wrapper such as `hpc-run.ps1`, which can be replaced with direct SSH
 
-## 安装步骤
+## Installation
 
-### 1. 安装 Rainmeter
+### 1. Install Rainmeter
+
 ```
 winget install Rainmeter.Rainmeter
 ```
 
-### 2. 部署皮肤
-将 `Hanhai22Jobs.ini` 放到：
+### 2. Install the skin
+
+Place `Hanhai22Jobs.ini` in:
+
 ```
 %USERPROFILE%\Documents\Rainmeter\Skins\Hanhai22Jobs\
 ```
-右键系统托盘 Rainmeter 图标 → Skins → Hanhai22Jobs → Hanhai22Jobs.ini 加载。
 
-### 3. 配置 SSH 连接
-修改 `slurm_fetch.py` 中的以下变量为你自己的值：
+Right-click the Rainmeter system tray icon, then select Skins → Hanhai22Jobs → Hanhai22Jobs.ini to load it.
+
+### 3. Configure SSH access
+
+Set the configuration variables in `slurm_fetch.py` for your environment:
 
 ```python
-HPC_RUN = r"你的 SSH 包装器路径"        # Windows 上调用 SSH 的脚本
-SQUEUE_FMT = "%.10i %.18j %.8u %.10M %.8T %N"  # squeue 输出格式
+SSH_WRAPPER = r"C:\path\to\your-ssh-wrapper.ps1"  # PowerShell wrapper for SSH
+SLURM_USER = "your_username"
+OUTPUT_FILE = r"C:\Users\...\Documents\Rainmeter\Skins\Hanhai22Jobs\jobs.txt"
+SQUEUE_FMT = "%.10i %.18j %.8u %.10M %.8T %N"  # squeue output columns
+CLUSTER_NAME = "MyCluster"
 ```
 
-如果你用的是直接 SSH（而不是 hpc-run.ps1 包装器），把 `fetch_squeue()` 函数中的 subprocess 调用改为：
+To use direct SSH, replace the subprocess arguments in `fetch_squeue()` with:
 
 ```python
 result = subprocess.run(
@@ -65,46 +73,53 @@ result = subprocess.run(
 )
 ```
 
-### 4. 启动守护进程
-双击 `slurm_daemon.pyw`（后台运行，无控制台窗口）。
+### 4. Start the daemon
 
-### 5. 设置开机自启（可选）
-创建 `slurm_daemon.vbs` 放到启动文件夹：
+Set `PYTHON` and `FETCH_SCRIPT` in `slurm_daemon.pyw` to the paths of your Python interpreter and fetch script.
+
+Double-click `slurm_daemon.pyw` to run it in the background without a console window.
+
+### 5. Start automatically at login (optional)
+
+Create `slurm_daemon.vbs` in the Startup folder:
+
 ```
 %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\
 ```
-内容：
+
+Contents:
+
 ```vbs
 Set WshShell = CreateObject("WScript.Shell")
 WshShell.Run """C:\path\to\pythonw.exe"" ""E:\path\to\slurm_daemon.pyw""", 0, False
 ```
 
-## 迁移到其他电脑
+## Moving to Another Computer
 
-1. **安装 Rainmeter**，拷贝 `Hanhai22Jobs.ini` 到 Skins 目录
-2. **修改 `slurm_fetch.py`** 中的 SSH 连接参数：
-   - 用户名、主机地址
-   - squeue 格式（如需调整列）
-   - SSH 认证方式（密钥/密码）
-3. **调整 `Hanhai22Jobs.ini`** 中的路径：
-   - `jobs.txt` 路径
-   - 皮肤位置和窗口大小
-4. **Python 路径** — `slurm_daemon.pyw` 和 `.vbs` 中改为目标电脑的 Python 路径
+1. **Install Rainmeter** and copy `Hanhai22Jobs.ini` into the Skins directory.
+2. **Configure SSH access** in `slurm_fetch.py`:
+   - Username and host address
+   - squeue output format, if different columns are needed
+   - SSH authentication method, such as a key or password
+3. **Update the paths**:
+   - Set `OUTPUT_FILE` in `slurm_fetch.py` to the skin's `jobs.txt` path.
+   - Adjust the skin location and window size as needed.
+4. **Set the Python and script paths** in `slurm_daemon.pyw` and the optional `.vbs` startup script.
 
-## 注意事项
+## Notes
 
-- 守护进程每分钟向集群发送 1 次 `squeue` 请求，负载极低
-- 如果 SSH 连接使用密码认证，需确保密码文件/凭证在正确路径
-- Rainmeter 皮肤可拖动、可右键关闭
-- 多个任务同时显示时，皮肤会自动扩展高度
+- The daemon sends one `squeue` request per minute, keeping the query load low.
+- For password-based SSH authentication, ensure that the wrapper can find its credential files.
+- The Rainmeter skin can be dragged or closed through its context menu.
+- The panel height expands automatically when multiple jobs are displayed.
 
-## 技术架构
+## Architecture
 
 ```
-slurm_daemon.pyw (每 60s)
+slurm_daemon.pyw (every 60 seconds)
     └→ slurm_fetch.py
          └→ SSH → squeue -u user
               └→ jobs.txt
-                   └→ Rainmeter WebParser (每 10s 读取)
-                        └→ 桌面显示
+                   └→ Rainmeter WebParser (reads every 10 seconds)
+                        └→ Desktop display
 ```
